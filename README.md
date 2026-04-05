@@ -1,81 +1,116 @@
-<br />
-<br />
+# Final Layer — Quantum-Resistant Node (nearcore-pq)
 
-<p align="center">
-<img src="docs/images/logo.svg" width="240">
-</p>
+**Final Layer** is a production-ready blockchain node forked from [NEAR Protocol](https://near.org), with all elliptic curve cryptography replaced by NIST-standardized post-quantum signature schemes.
 
-<br />
-<br />
+> This repository contains the full node source. For contracts, documentation, and benchmarks see [final-layer](https://github.com/FinalLayerBlockchain/final-layer).
 
+---
 
-## Reference implementation of NEAR Protocol
+## What is Final Layer?
 
-[![Build][build-badge]][build-url]
-![Stable Status][stable-release]
-![Prerelease Status][prerelease]
-[![codecov][codecov-badge]][codecov-url]
-[![Discord chat][discord-badge]][discord-url]
-[![Twitter][twitter-badge]][twitter-url]
-[![Telegram Group][telegram-badge]][telegram-url]
+Final Layer extends NEAR Protocol's sharded proof-of-stake architecture with quantum-resistant cryptography. Ed25519 and secp256k1 — both vulnerable to Shor's algorithm on a sufficiently powerful quantum computer — are removed entirely and replaced with three NIST-standardized schemes:
 
-[build-badge]: https://github.com/near/nearcore/actions/workflows/ci.yml/badge.svg?branch=master
-[build-url]: https://github.com/near/nearcore/actions
-[stable-release]: https://img.shields.io/github/v/release/nearprotocol/nearcore?label=stable
-[prerelease]: https://img.shields.io/github/v/release/nearprotocol/nearcore?include_prereleases&label=prerelease
-[ci-badge-master]: https://badge.buildkite.com/a81147cb62c585cc434459eedd1d25e521453120ead9ee6c64.svg?branch=master
-[ci-url]: https://buildkite.com/nearprotocol/nearcore
-[codecov-badge]: https://codecov.io/gh/near/nearcore/branch/master/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/near/nearcore
-[discord-badge]: https://img.shields.io/discord/490367152054992913.svg
-[discord-url]: https://discord.com/invite/nearprotocol
-[twitter-badge]: https://img.shields.io/twitter/follow/NEARProtocol
-[twitter-url]: https://x.com/NEARProtocol
-[telegram-badge]: https://cdn.jsdelivr.net/gh/Patrolavia/telegram-badge@8fe3382b3fd3a1c533ba270e608035a27e430c2e/chat.svg
-[telegram-url]: https://t.me/cryptonear
+| Algorithm | Standard | Family | Public Key | Signature | Gas (v1003) |
+|---|---|---|---|---|---|
+| **FN-DSA** (Falcon-512) | FIPS 206 | Lattice (NTRU) | 897 bytes | 666 bytes | 1.4 TGas |
+| **ML-DSA** (Dilithium3) | FIPS 204 | Lattice (Module-LWE) | 1952 bytes | 3309 bytes | 3.0 TGas |
+| **SLH-DSA** (SPHINCS+-128) | FIPS 205 | Hash-based | 32 bytes | ~8000 bytes | 8.0 TGas |
 
-## About NEAR
+---
 
-NEAR's purpose is to enable community-driven innovation to benefit people around the world.
+## Key Changes from NEAR Protocol
 
-To achieve this purpose, *NEAR* provides a developer platform where developers and entrepreneurs can create apps that put users back in control of their data and assets, which is the foundation of ["Open Web" movement][open-web-url].
+### Cryptographic Layer
+- New key types: `MLDSA`, `FNDSA`, `SLHDSA` replacing Ed25519 and secp256k1
+- Borsh serialization uses 4-byte LE u32 length prefix for variable-length PQC keys
+- Key format: `algo:base58(bytes)` — e.g. `fndsa:34emUD6...`
 
-One of the components of *NEAR* is the NEAR Protocol, an infrastructure for server-less applications and smart contracts powered by a blockchain.
-NEAR Protocol is built to deliver usability and scalability of modern PaaS like Firebase at fraction of the prices that blockchains like Ethereum charge.
+### VM Host Functions
+Three new host functions exposed to WASM smart contracts in `runtime/near-vm-runner/src/logic/pqc_host_fns.rs`:
 
-Overall, *NEAR* provides a wide range of tools for developers to easily build applications:
- - [JS Client library][js-api] to connect to NEAR Protocol from your applications.
- - [Rust][rust-sdk] and [JavaScript/TypeScript][js-sdk] SDKs to write smart contracts and stateful server-less functions.
- - [Several essential repositories](https://github.com/near/dx) to guide you in building across Near's Open Web Platform.
- - [Numerous examples][examples-url] with links to hack on them right inside your browser.
- - [Lots of documentation][docs-url], with [Tutorials][tutorials-url] and [API docs][api-docs-url].
- - [NEAR Protocol formal specification][nomicon-io], and [docs for nearcore developers][nomicon-io].
+```
+pqc_verify_fndsa  (pk, pk_len, sig, sig_len, msg, msg_len) -> u64
+pqc_verify_mldsa  (pk, pk_len, sig, sig_len, msg, msg_len) -> u64
+pqc_verify_slhdsa (pk, pk_len, sig, sig_len, msg, msg_len) -> u64
+```
 
-[open-web-url]: https://techcrunch.com/2016/04/10/1301496/
-[js-api]: https://github.com/near/near-api-js
-[rust-sdk]: https://github.com/near/near-sdk-rs
-[js-sdk]: https://github.com/near/near-sdk-js
-[examples-url]: https://github.com/near-examples
-[docs-url]: https://docs.near.org
-[tutorials-url]: https://docs.near.org/tutorials/welcome
-[api-docs-url]: https://docs.near.org/api/rpc/introduction
-[nomicon-io]: https://nomicon.io
+Gas constants calibrated from 1000-iteration benchmarks on min-spec validator hardware (2-core, 4GB) at p99:
 
-## Join the Network
+```rust
+const FNDSA_VERIFY_BASE_GAS:  u64 = 1_400_000_000_000; // p99 = 0.24ms
+const MLDSA_VERIFY_BASE_GAS:  u64 = 3_000_000_000_000; // p99 = 1.70ms  (v1003: raised from 2.1T)
+const SLHDSA_VERIFY_BASE_GAS: u64 = 8_000_000_000_000; // p99 = 5.10ms  (v1003: raised from 3.2T)
+```
 
-To learn how to become a validator, checkout [documentation](https://near-nodes.io/validator/staking-and-delegation).
+### Protocol Versions
 
-## Contributing
+| Version | Change |
+|---|---|
+| v1001 | Genesis — PQC cryptography introduced, 9-shard config |
+| v1002 | Multi-shard epoch config |
+| v1003 | Gas rebalance hard fork (current) |
 
-The workflow and details of setup to contribute are described in [CONTRIBUTING.md](CONTRIBUTING.md), and security policy is described in [SECURITY.md](SECURITY.md).
-To propose new protocol changes or standards use [Specification & Standards repository](https://github.com/nearprotocol/NEPs).
+---
 
-## Getting in Touch
+## Network
 
-We use Zulip for semi-synchronous technical discussion, feel free to chime in:
+| Property | Value |
+|---|---|
+| Chain ID | `final-layer-mainnet` |
+| Protocol version | 1003 |
+| Shards | 9 |
+| Block time | ~1 second |
+| Native token | FLC |
+| Consensus | Doomslug (inherited from NEAR Protocol) |
 
-https://near.zulipchat.com/
+---
 
-For non-technical discussion and overall direction of the project, see our Discourse forum:
+## Building
 
-https://gov.near.org
+```bash
+# Prerequisites: Rust toolchain, cmake, clang
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Build the node binary
+cargo build --release -p neard
+```
+
+Minimum hardware: 4 vCPU, 8GB RAM, 200GB SSD.
+
+---
+
+## Running a Validator
+
+```bash
+# Initialize node
+neard --home ~/.fl-node init --chain-id final-layer-mainnet --account-id <your-validator.fl>
+
+# Start
+neard --home ~/.fl-node run
+```
+
+See [`scripts/deploy-validator.sh`](scripts/deploy-validator.sh) and the [docs](https://github.com/FinalLayerBlockchain/final-layer/tree/main/docs) for the full setup guide.
+
+---
+
+## Final Layer-Specific Files
+
+```
+runtime/near-vm-runner/src/logic/pqc_host_fns.rs   # PQC host functions + gas constants
+core/crypto/                                         # PQC key types
+core/primitives-core/src/version.rs                  # Protocol version (1003)
+contracts/staking-pool/                              # PQC-aware staking pool v5
+```
+
+---
+
+## Related Repositories
+
+| Repo | Description |
+|---|---|
+| [final-layer](https://github.com/FinalLayerBlockchain/final-layer) | Staking contract, docs, benchmarks, upgrade guides |
+| [nearcore](https://github.com/FinalLayerBlockchain/nearcore) | Unmodified NEAR Protocol reference fork |
+
+---
+
+*Final Layer is built on [NEAR Protocol](https://github.com/near/nearcore) — a sharded, proof-of-stake Layer 1 blockchain. Final Layer modifications copyright 2026 Final Layer Blockchain. Licensed under Apache 2.0.*
