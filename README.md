@@ -1,6 +1,6 @@
-# Final Layer — Quantum-Resistant Node
+# Final Layer: Quantum-Resistant Blockchain
 
-Final Layer is a blockchain node forked from [NEAR Protocol](https://near.org) with all elliptic curve cryptography swapped out for NIST post-quantum standards. Ed25519 and secp256k1 are gone entirely — no fallback.
+Final Layer is a blockchain forked from [NEAR Protocol](https://near.org) with all elliptic curve cryptography replaced by NIST post-quantum standards. Ed25519 and secp256k1 are gone entirely, no fallback.
 
 For the staking contract, docs, and benchmarks check out [final-layer](https://github.com/FinalLayerBlockchain/final-layer).
 
