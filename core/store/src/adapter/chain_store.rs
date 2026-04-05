@@ -1,0 +1,444 @@
+use super::{StoreAdapter, StoreUpdateAdapter, StoreUpdateHolder};
+use crate::db::{GC_STOP_HEIGHT_KEY, SPICE_EXECUTION_HEAD_KEY, SPICE_FINAL_EXECUTION_HEAD_KEY};
+use crate::{
+    CHUNK_TAIL_KEY, DBCol, FINAL_HEAD_KEY, FORK_TAIL_KEY, HEAD_KEY, HEADER_HEAD_KEY,
+    LARGEST_TARGET_HEIGHT_KEY, Store, StoreUpdate, TAIL_KEY, get_genesis_height,
+};
+use near_chain_primitives::Error;
+use near_primitives::block::{Block, BlockHeader, Tip};
+use near_primitives::hash::CryptoHash;
+use near_primitives::merkle::PartialMerkleTree;
+use near_primitives::receipt::{ProcessedReceiptMetadata, Receipt, ReceiptToTxInfo};
+use near_primitives::sharding::ReceiptProof;
+use near_primitives::state_sync::{ShardStateSyncResponseHeader, StateHeaderKey};
+use near_primitives::transaction::{ExecutionOutcomeWithProof, SignedTransaction};
+use near_primitives::types::{BlockHeight, EpochId, NumBlocks, ShardId};
+use near_primitives::utils::{get_block_shard_id, get_outcome_id_block_hash, index_to_bytes};
+use near_primitives::views::LightClientBlockView;
+use std::collections::{HashMap, HashSet};
+use std::io;
+use std::sync::{Arc, OnceLock};
+
+#[derive(Clone)]
+pub struct ChainStoreAdapter {
+    store: Store,
+    /// Genesis block height, lazily initialized.
+    genesis_height: OnceLock<BlockHeight>,
+}
+
+impl StoreAdapter for ChainStoreAdapter {
+    fn store_ref(&self) -> &Store {
+        &self.store
+    }
+}
+
+impl ChainStoreAdapter {
+    pub fn new(store: Store) -> Self {
+        Self { store, genesis_height: OnceLock::new() }
+    }
+
+    pub fn store_update(&self) -> ChainStoreUpdateAdapter<'static> {
+        ChainStoreUpdateAdapter {
+            store_update: StoreUpdateHolder::Owned(self.store.store_update()),
+        }
+    }
+
+    /// Helper method to lazily initialize and retrieve the genesis height.
+    fn get_or_init_genesis_height(&self) -> BlockHeight {
+        *self.genesis_height.get_or_init(|| {
+            get_genesis_height(&self.store).expect("Genesis height not found in storage")
+        })
+    }
+
+    /// The chain head.
+    pub fn head(&self) -> Result<Arc<Tip>, Error> {
+        option_to_not_found(self.store.caching_get_ser(DBCol::BlockMisc, HEAD_KEY), "HEAD")
+    }
+
+    /// The chain Blocks Tail height.
+    pub fn tail(&self) -> BlockHeight {
+        self.store
+            .get_ser(DBCol::BlockMisc, TAIL_KEY)
+            .unwrap_or_else(|| self.get_or_init_genesis_height())
+    }
+
+    /// The chain Chunks Tail height.
+    pub fn chunk_tail(&self) -> BlockHeight {
+        self.store
+            .get_ser(DBCol::BlockMisc, CHUNK_TAIL_KEY)
+            .unwrap_or_else(|| self.get_or_init_genesis_height())
+    }
+
+    /// Tail height of the fork cleaning process.
+    pub fn fork_tail(&self) -> BlockHeight {
+        self.store
+            .get_ser(DBCol::BlockMisc, FORK_TAIL_KEY)
+            .unwrap_or_else(|| self.get_or_init_genesis_height())
+    }
+
+    /// Head of the header chain (not the same thing as head_header).
+    pub fn header_head(&self) -> Result<Arc<Tip>, Error> {
+        option_to_not_found(
+            self.store.caching_get_ser(DBCol::BlockMisc, HEADER_HEAD_KEY),
+            "HEADER_HEAD",
+        )
+    }
+
+    /// Header of the block at the head of the block chain (not the same thing as header_head).
+    pub fn head_header(&self) -> Result<Arc<BlockHeader>, Error> {
+        let last_block_hash = self.head()?.last_block_hash;
+        option_to_not_found(
+            self.store.caching_get_ser(DBCol::BlockHeader, last_block_hash.as_ref()),
+            format_args!("BLOCK HEADER: {}", last_block_hash),
+        )
+    }
+
+    /// The chain final head. It is guaranteed to be monotonically increasing.
+    pub fn final_head(&self) -> Result<Arc<Tip>, Error> {
+        option_to_not_found(
+            self.store.caching_get_ser(DBCol::BlockMisc, FINAL_HEAD_KEY),
+            "FINAL HEAD",
+        )
+    }
+
+    pub fn spice_final_execution_head(&self) -> Result<Arc<Tip>, Error> {
+        option_to_not_found(
+            self.store.caching_get_ser(DBCol::BlockMisc, SPICE_FINAL_EXECUTION_HEAD_KEY),
+            "SPICE FINAL EXECUTION HEAD",
+        )
+    }
+
+    pub fn spice_execution_head(&self) -> Result<Arc<Tip>, Error> {
+        option_to_not_found(
+            self.store.caching_get_ser(DBCol::BlockMisc, SPICE_EXECUTION_HEAD_KEY),
+            "SPICE EXECUTION HEAD",
+        )
+    }
+
+    /// Largest approval target height sent by us
+    pub fn largest_target_height(&self) -> BlockHeight {
+        self.store.get_ser(DBCol::BlockMisc, LARGEST_TARGET_HEIGHT_KEY).unwrap_or(0)
+    }
+
+    pub fn gc_stop_height(&self) -> BlockHeight {
+        self.store
+            .get_ser(DBCol::BlockMisc, GC_STOP_HEIGHT_KEY)
+            .unwrap_or_else(|| self.get_or_init_genesis_height())
+    }
+
+    /// Get full block.
+    pub fn get_block(&self, block_hash: &CryptoHash) -> Result<Arc<Block>, Error> {
+        option_to_not_found(
+            self.store.caching_get_ser(DBCol::Block, block_hash.as_ref()),
+            format_args!("BLOCK: {}", block_hash),
+        )
+    }
+
+    /// Returns a number of references for Block with `block_hash`
+    pub fn get_block_refcount(&self, block_hash: &CryptoHash) -> Result<u64, Error> {
+        option_to_not_found(
+            self.store.get_ser(DBCol::BlockRefCount, block_hash.as_ref()),
+            format_args!("BLOCK REFCOUNT: {}", block_hash),
+        )
+    }
+
+    /// Does this full block exist?
+    pub fn block_exists(&self, h: &CryptoHash) -> bool {
+        self.store.exists(DBCol::Block, h.as_ref())
+    }
+
+    /// Get block header.
+    pub fn get_block_header(&self, h: &CryptoHash) -> Result<Arc<BlockHeader>, Error> {
+        option_to_not_found(
+            self.store.caching_get_ser(DBCol::BlockHeader, h.as_ref()),
+            format_args!("BLOCK HEADER: {}", h),
+        )
+    }
+
+    /// Get block height.
+    pub fn get_block_height(&self, hash: &CryptoHash) -> Result<BlockHeight, Error> {
+        if hash == &CryptoHash::default() {
+            Ok(self.get_or_init_genesis_height())
+        } else {
+            Ok(self.get_block_header(hash)?.height())
+        }
+    }
+
+    /// Get previous header.
+    pub fn get_previous_header(&self, header: &BlockHeader) -> Result<Arc<BlockHeader>, Error> {
+        self.get_block_header(header.prev_hash())
+    }
+
+    /// Returns hash of the block on the main chain for given height.
+    pub fn get_block_hash_by_height(&self, height: BlockHeight) -> Result<CryptoHash, Error> {
+        option_to_not_found(
+            self.store.caching_get_ser(DBCol::BlockHeight, &index_to_bytes(height)),
+            format_args!("BLOCK HEIGHT: {}", height),
+        )
+        .map(|v| *v)
+    }
+
+    /// Returns a hashmap of epoch id -> set of all blocks got for current (height, epoch_id)
+    pub fn get_all_block_hashes_by_height(
+        &self,
+        height: BlockHeight,
+    ) -> Arc<HashMap<EpochId, HashSet<CryptoHash>>> {
+        self.store.get_ser(DBCol::BlockPerHeight, &index_to_bytes(height)).unwrap_or_default()
+    }
+
+    /// Returns a HashSet of Header Hashes for current Height
+    pub fn get_all_header_hashes_by_height(&self, height: BlockHeight) -> HashSet<CryptoHash> {
+        self.store.get_ser(DBCol::HeaderHashesByHeight, &index_to_bytes(height)).unwrap_or_default()
+    }
+
+    /// Returns block header from the current chain for given height if present.
+    pub fn get_block_header_by_height(
+        &self,
+        height: BlockHeight,
+    ) -> Result<Arc<BlockHeader>, Error> {
+        let hash = self.get_block_hash_by_height(height)?;
+        self.get_block_header(&hash)
+    }
+
+    pub fn get_next_block_hash(&self, hash: &CryptoHash) -> Result<CryptoHash, Error> {
+        option_to_not_found(
+            self.store.get_ser(DBCol::NextBlockHashes, hash.as_ref()),
+            format_args!("NEXT BLOCK HASH: {}", hash),
+        )
+    }
+
+    pub fn get_outgoing_receipts(
+        &self,
+        prev_block_hash: &CryptoHash,
+        shard_id: ShardId,
+    ) -> Result<Arc<Vec<Receipt>>, Error> {
+        option_to_not_found(
+            self.store
+                .get_ser(DBCol::OutgoingReceipts, &get_block_shard_id(prev_block_hash, shard_id)),
+            format_args!("OUTGOING RECEIPT: {} {}", prev_block_hash, shard_id),
+        )
+    }
+
+    pub fn get_processed_receipt_ids(
+        &self,
+        block_hash: &CryptoHash,
+        shard_id: ShardId,
+    ) -> Result<Arc<Vec<ProcessedReceiptMetadata>>, Error> {
+        option_to_not_found(
+            self.store
+                .get_ser(DBCol::ProcessedReceiptIds, &get_block_shard_id(block_hash, shard_id)),
+            format_args!("PROCESSED RECEIPT IDS: {} {}", block_hash, shard_id),
+        )
+    }
+
+    pub fn get_incoming_receipts(
+        &self,
+        block_hash: &CryptoHash,
+        shard_id: ShardId,
+    ) -> Result<Arc<Vec<ReceiptProof>>, Error> {
+        option_to_not_found(
+            self.store.get_ser(DBCol::IncomingReceipts, &get_block_shard_id(block_hash, shard_id)),
+            format_args!("INCOMING RECEIPT: {} {}", block_hash, shard_id),
+        )
+    }
+
+    pub fn get_blocks_to_catchup(&self, prev_hash: &CryptoHash) -> Vec<CryptoHash> {
+        self.store.get_ser(DBCol::BlocksToCatchup, prev_hash.as_ref()).unwrap_or_default()
+    }
+
+    pub fn get_transaction(&self, tx_hash: &CryptoHash) -> Option<Arc<SignedTransaction>> {
+        self.store.get_ser(DBCol::Transactions, tx_hash.as_ref())
+    }
+
+    /// Fetch a receipt by id, if it is stored in the store.
+    ///
+    /// Note that not _all_ receipts are persisted. Some receipts are ephemeral,
+    /// get processed immediately after creation and don't even get to the
+    /// database.
+    pub fn get_receipt(&self, receipt_id: &CryptoHash) -> Option<Arc<Receipt>> {
+        self.store.get_ser(DBCol::Receipts, receipt_id.as_ref())
+    }
+
+    pub fn get_block_merkle_tree(
+        &self,
+        block_hash: &CryptoHash,
+    ) -> Result<PartialMerkleTree, Error> {
+        option_to_not_found(
+            self.store.get_ser(DBCol::BlockMerkleTree, block_hash.as_ref()),
+            format_args!("BLOCK MERKLE TREE: {}", block_hash),
+        )
+    }
+
+    pub fn get_block_hash_from_ordinal(
+        &self,
+        block_ordinal: NumBlocks,
+    ) -> Result<CryptoHash, Error> {
+        option_to_not_found(
+            self.store.get_ser(DBCol::BlockOrdinal, &index_to_bytes(block_ordinal)),
+            format_args!("BLOCK ORDINAL: {}", block_ordinal),
+        )
+    }
+
+    pub fn get_block_merkle_tree_from_ordinal(
+        &self,
+        block_ordinal: NumBlocks,
+    ) -> Result<PartialMerkleTree, Error> {
+        let block_hash = self.get_block_hash_from_ordinal(block_ordinal)?;
+        self.get_block_merkle_tree(&block_hash)
+    }
+
+    pub fn get_epoch_light_client_block(
+        &self,
+        hash: &CryptoHash,
+    ) -> Result<Arc<LightClientBlockView>, Error> {
+        option_to_not_found(
+            self.store.get_ser(DBCol::EpochLightClientBlocks, hash.as_ref()),
+            format_args!("EPOCH LIGHT CLIENT BLOCK: {}", hash),
+        )
+    }
+
+    pub fn is_height_processed(&self, height: BlockHeight) -> bool {
+        self.store.exists(DBCol::ProcessedBlockHeights, &index_to_bytes(height))
+    }
+
+    pub fn get_outcome_by_id_and_block_hash(
+        &self,
+        id: &CryptoHash,
+        block_hash: &CryptoHash,
+    ) -> Option<ExecutionOutcomeWithProof> {
+        self.store
+            .get_ser(DBCol::TransactionResultForBlock, &get_outcome_id_block_hash(id, block_hash))
+    }
+
+    /// Returns the receipt-to-tx origin info for a given receipt_id, if stored.
+    pub fn get_receipt_to_tx(&self, receipt_id: &CryptoHash) -> Option<ReceiptToTxInfo> {
+        self.store.get_ser(DBCol::ReceiptToTx, receipt_id.as_ref())
+    }
+
+    /// Returns a vector of Outcome ids for given block and shard id
+    pub fn get_outcomes_by_block_hash_and_shard_id(
+        &self,
+        block_hash: &CryptoHash,
+        shard_id: ShardId,
+    ) -> Vec<CryptoHash> {
+        self.store
+            .get_ser(DBCol::OutcomeIds, &get_block_shard_id(block_hash, shard_id))
+            .unwrap_or_default()
+    }
+
+    /// Returns a vector of all known processed next block hashes.
+    pub fn get_all_next_block_hashes(&self, block_hash: &CryptoHash) -> Vec<CryptoHash> {
+        self.store.get_ser(DBCol::all_next_block_hashes(), block_hash.as_ref()).unwrap_or_default()
+    }
+
+    pub fn get_state_header(
+        &self,
+        shard_id: ShardId,
+        block_hash: CryptoHash,
+    ) -> Result<ShardStateSyncResponseHeader, Error> {
+        let key = borsh::to_vec(&StateHeaderKey(shard_id, block_hash)).unwrap();
+        self.store
+            .get_ser(DBCol::StateHeaders, &key)
+            .ok_or_else(|| Error::Other("Cannot get shard_state_header".into()))
+    }
+
+    pub fn get_current_epoch_sync_hash(&self, epoch_id: &EpochId) -> Option<CryptoHash> {
+        self.store.get_ser(DBCol::StateSyncHashes, epoch_id.as_ref())
+    }
+
+    /// Get height of genesis
+    pub fn get_genesis_height(&self) -> BlockHeight {
+        self.get_or_init_genesis_height()
+    }
+}
+
+pub struct ChainStoreUpdateAdapter<'a> {
+    store_update: StoreUpdateHolder<'a>,
+}
+
+impl Into<StoreUpdate> for ChainStoreUpdateAdapter<'static> {
+    fn into(self) -> StoreUpdate {
+        self.store_update.into()
+    }
+}
+
+impl ChainStoreUpdateAdapter<'static> {
+    pub fn commit(self) -> io::Result<()> {
+        let store_update: StoreUpdate = self.into();
+        store_update.commit();
+        Ok(())
+    }
+}
+
+impl<'a> StoreUpdateAdapter for ChainStoreUpdateAdapter<'a> {
+    fn store_update(&mut self) -> &mut StoreUpdate {
+        &mut self.store_update
+    }
+}
+
+impl<'a> ChainStoreUpdateAdapter<'a> {
+    pub fn new(store_update: &'a mut StoreUpdate) -> Self {
+        Self { store_update: StoreUpdateHolder::Reference(store_update) }
+    }
+
+    /// Note: Typically while saving the block header we would also like to update
+    /// block_header_hashes_by_height and update block_merkle_tree
+    /// This is a primitive function and changing only the BlockHeader column can lead to inconsistencies
+    pub fn set_block_header_only(&mut self, header: &BlockHeader) {
+        self.store_update.insert_ser(DBCol::BlockHeader, header.hash().as_ref(), header);
+    }
+
+    /// Note: Typically block_header_hashes_by_height is saved while saving the block header
+    /// This is a primitive function and changing only the HeaderHashesByHeight column can lead to inconsistencies
+    /// Use with update_block_header_hashes_by_height
+    pub fn set_block_header_hashes_by_height(
+        &mut self,
+        height: BlockHeight,
+        hash_set: &HashSet<CryptoHash>,
+    ) {
+        self.store_update.set_ser(DBCol::HeaderHashesByHeight, &index_to_bytes(height), hash_set);
+    }
+
+    /// Note: Typically block_merkle_tree is saved while saving the block header
+    /// This is a primitive function and changing only the BlockMerkleTree column can lead to inconsistencies
+    pub fn set_block_merkle_tree(
+        &mut self,
+        block_hash: &CryptoHash,
+        block_merkle_tree: &PartialMerkleTree,
+    ) {
+        self.store_update.set_ser(DBCol::BlockMerkleTree, block_hash.as_ref(), block_merkle_tree);
+    }
+
+    pub fn set_block_ordinal(&mut self, block_ordinal: NumBlocks, block_hash: &CryptoHash) {
+        self.store_update.set_ser(DBCol::BlockOrdinal, &index_to_bytes(block_ordinal), block_hash);
+    }
+
+    pub fn set_block_height(&mut self, hash: &CryptoHash, height: BlockHeight) {
+        self.store_update.set_ser(DBCol::BlockHeight, &borsh::to_vec(&height).unwrap(), hash);
+    }
+
+    pub fn set_header_head(&mut self, header_head: &Tip) {
+        self.store_update.set_ser(DBCol::BlockMisc, HEADER_HEAD_KEY, header_head);
+    }
+
+    pub fn set_final_head(&mut self, final_head: &Tip) {
+        self.store_update.set_ser(DBCol::BlockMisc, FINAL_HEAD_KEY, final_head);
+    }
+
+    /// This function is normally clubbed with set_block_header_only
+    /// This is a primitive function and changing only the HeaderHashesByHeight column can lead to inconsistencies
+    pub fn update_block_header_hashes_by_height(&mut self, header: &BlockHeader) {
+        let height = header.height();
+        let mut hash_set =
+            self.store_update.store.chain_store().get_all_header_hashes_by_height(height);
+        hash_set.insert(*header.hash());
+        self.set_block_header_hashes_by_height(height, &hash_set);
+    }
+}
+
+fn option_to_not_found<T, F>(res: Option<T>, field_name: F) -> Result<T, Error>
+where
+    F: std::string::ToString,
+{
+    res.ok_or_else(|| Error::DBNotFoundErr(field_name.to_string()))
+}

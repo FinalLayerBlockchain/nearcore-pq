@@ -1,0 +1,17 @@
+target/
+genesis.json
+records.json
+config.json
+*.key
+*_key.json
+node_key.json
+validator_key.json
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.log
+.vscode/
+.idea/
+.DS_Store
+CLAUDE.md

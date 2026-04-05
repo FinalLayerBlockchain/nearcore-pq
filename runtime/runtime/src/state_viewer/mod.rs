@@ -1,0 +1,407 @@
+use crate::ApplyState;
+use crate::contract_code::{GlobalContractAccessExt, RuntimeContractIdentifier};
+use crate::ext::RuntimeExt;
+use crate::function_call::execute_function_call;
+use crate::pipelining::ReceiptPreparationPipeline;
+use crate::receipt_manager::ReceiptManager;
+use itertools::Itertools;
+use near_crypto::{KeyType, PublicKey};
+use near_parameters::RuntimeConfigStore;
+use near_primitives::account::{AccessKey, Account};
+use near_primitives::action::GlobalContractIdentifier;
+use near_primitives::apply::ApplyChunkReason;
+use near_primitives::bandwidth_scheduler::BlockBandwidthRequests;
+use near_primitives::hash::CryptoHash;
+use near_primitives::receipt::{
+    ActionReceipt, Receipt, ReceiptEnum, ReceiptV0, VersionedActionReceipt,
+};
+use near_primitives::transaction::FunctionCallAction;
+use near_primitives::trie_key::trie_key_parsers::{
+    self, parse_nonce_index_from_gas_key_key, parse_public_key_from_access_key_key,
+};
+use near_primitives::types::{
+    AccountId, Balance, BlockHeight, EpochHeight, EpochId, EpochInfoProvider, Gas, Nonce, ShardId,
+};
+use near_primitives::views::{StateItem, ViewStateResult};
+use near_primitives_core::config::ViewConfig;
+use near_store::trie::AccessOptions;
+use near_store::{TrieAccess as _, TrieUpdate, get_access_key, get_account, get_gas_key_nonce};
+use near_vm_runner::logic::{ProtocolVersion, ReturnData};
+use near_vm_runner::{ContractCode, ContractRuntimeCache};
+use std::{str, sync::Arc, time::Instant};
+
+pub mod errors;
+
+/// State for the view call.
+#[derive(Debug)]
+pub struct ViewApplyState {
+    /// Currently building block height.
+    pub block_height: BlockHeight,
+    /// Prev block hash
+    pub prev_block_hash: CryptoHash,
+    /// To which shard the applied chunk belongs.
+    pub shard_id: ShardId,
+    /// Current epoch id
+    pub epoch_id: EpochId,
+    /// Current epoch height
+    pub epoch_height: EpochHeight,
+    /// The current block timestamp (number of non-leap-nanoseconds since January 1, 1970 0:00:00 UTC).
+    pub block_timestamp: u64,
+    /// Current Protocol version when we apply the state transition
+    pub current_protocol_version: ProtocolVersion,
+    /// Cache for compiled contracts.
+    pub cache: Option<Box<dyn ContractRuntimeCache>>,
+}
+
+pub struct TrieViewer {
+    runtime_config_store: RuntimeConfigStore,
+    /// Upper bound of the byte size of contract state that is still viewable. None is no limit
+    state_size_limit: Option<u64>,
+    /// Gas limit used when handling call_function queries. If None, resolved
+    /// from the runtime config for the current protocol version.
+    max_gas_burnt_view: Option<Gas>,
+}
+
+impl Default for TrieViewer {
+    fn default() -> Self {
+        let runtime_config_store = RuntimeConfigStore::new(None);
+        Self { runtime_config_store, state_size_limit: None, max_gas_burnt_view: None }
+    }
+}
+
+impl TrieViewer {
+    pub fn new(
+        runtime_config_store: RuntimeConfigStore,
+        state_size_limit: Option<u64>,
+        max_gas_burnt_view: Option<Gas>,
+    ) -> Self {
+        Self { runtime_config_store, state_size_limit, max_gas_burnt_view }
+    }
+
+    pub fn view_account(
+        &self,
+        state_update: &TrieUpdate,
+        account_id: &AccountId,
+    ) -> Result<Account, errors::ViewAccountError> {
+        get_account(state_update, account_id)?.ok_or_else(|| {
+            errors::ViewAccountError::AccountDoesNotExist {
+                requested_account_id: account_id.clone(),
+            }
+        })
+    }
+
+    pub fn view_account_contract_code(
+        &self,
+        state_update: &TrieUpdate,
+        account_id: &AccountId,
+        current_protocol_version: ProtocolVersion,
+        chain_id: &str,
+    ) -> Result<ContractCode, errors::ViewContractCodeError> {
+        let account = self.view_account(state_update, account_id)?;
+        let wasm_config =
+            &self.runtime_config_store.get_config(current_protocol_version).wasm_config;
+        let contract_id = RuntimeContractIdentifier::resolve(
+            account_id,
+            account.contract().into_owned(),
+            state_update,
+            wasm_config,
+            chain_id,
+            AccessOptions::DEFAULT,
+        )?;
+        let maybe_code = match contract_id {
+            RuntimeContractIdentifier::None => None,
+            RuntimeContractIdentifier::AccountLocal { code_hash, account_id } => {
+                let key = near_primitives::trie_key::TrieKey::ContractCode { account_id };
+                let code = state_update.get(&key, AccessOptions::DEFAULT)?;
+                code.map(|c| ContractCode::new(c, Some(code_hash)))
+            }
+            RuntimeContractIdentifier::Global { identifier, .. } => {
+                identifier.code(state_update)?
+            }
+            RuntimeContractIdentifier::LegacyEthWallet(legacy) => {
+                Some((*legacy.contract()).clone())
+            }
+        };
+        maybe_code.ok_or_else(|| errors::ViewContractCodeError::NoContractCode {
+            contract_account_id: account_id.clone(),
+        })
+    }
+
+    pub fn view_global_contract_code(
+        &self,
+        state_update: &TrieUpdate,
+        identifier: GlobalContractIdentifier,
+    ) -> Result<ContractCode, errors::ViewContractCodeError> {
+        identifier
+            .clone()
+            .code(state_update)?
+            .ok_or(errors::ViewContractCodeError::NoGlobalContractCode { identifier })
+    }
+
+    pub fn view_access_key(
+        &self,
+        state_update: &TrieUpdate,
+        account_id: &AccountId,
+        public_key: &PublicKey,
+    ) -> Result<AccessKey, errors::ViewAccessKeyError> {
+        get_access_key(state_update, account_id, public_key)?.ok_or_else(|| {
+            errors::ViewAccessKeyError::AccessKeyDoesNotExist { public_key: public_key.clone() }
+        })
+    }
+
+    pub fn view_access_keys(
+        &self,
+        state_update: &TrieUpdate,
+        account_id: &AccountId,
+    ) -> Result<Vec<(PublicKey, AccessKey)>, errors::ViewAccessKeyError> {
+        let prefix = trie_key_parsers::get_raw_prefix_for_access_keys(account_id);
+        let access_keys =
+            state_update
+                .iter(&prefix)?
+                .map(|key| {
+                    let key = key?;
+                    let public_key = parse_public_key_from_access_key_key(&key, account_id)
+                        .map_err(|_| errors::ViewAccessKeyError::InternalError {
+                            error_message: "Unexpected invalid access key from iterator"
+                                .to_string(),
+                        })?;
+                    if let Some(_index) =
+                        parse_nonce_index_from_gas_key_key(&key, account_id, &public_key).map_err(
+                            |_| errors::ViewAccessKeyError::InternalError {
+                                error_message: "could not parse nonce index".to_string(),
+                            },
+                        )?
+                    {
+                        // This is a gas key nonce, skip it.
+                        return Ok(None);
+                    }
+                    let access_key = get_access_key(state_update, account_id, &public_key)?
+                        .ok_or_else(|| errors::ViewAccessKeyError::AccessKeyDoesNotExist {
+                            public_key: public_key.clone(),
+                        })?;
+
+                    Ok(Some((public_key, access_key)))
+                })
+                .filter_map_ok(|x| x)
+                .collect::<Result<Vec<_>, errors::ViewAccessKeyError>>();
+        access_keys
+    }
+
+    pub fn view_gas_key_nonces(
+        &self,
+        state_update: &TrieUpdate,
+        account_id: &AccountId,
+        public_key: &PublicKey,
+    ) -> Result<Vec<Nonce>, errors::ViewGasKeyNoncesError> {
+        let access_key =
+            get_access_key(state_update, account_id, public_key)?.ok_or_else(|| {
+                errors::ViewGasKeyNoncesError::GasKeyDoesNotExist { public_key: public_key.clone() }
+            })?;
+        // If the access key is not a gas key, treat as not found.
+        let Some(gas_key_info) = access_key.gas_key_info() else {
+            return Err(errors::ViewGasKeyNoncesError::GasKeyDoesNotExist {
+                public_key: public_key.clone(),
+            });
+        };
+        (0..gas_key_info.num_nonces)
+            .map(|index| {
+                get_gas_key_nonce(state_update, account_id, public_key, index)?.ok_or_else(|| {
+                errors::ViewGasKeyNoncesError::InternalError {
+                    error_message: format!(
+                        "gas key nonce at index {} does not exist for account {} and public key {}",
+                        index, account_id, public_key
+                    ),
+                }
+            })
+            })
+            .collect()
+    }
+
+    pub fn view_state(
+        &self,
+        state_update: &TrieUpdate,
+        account_id: &AccountId,
+        prefix: &[u8],
+        include_proof: bool,
+    ) -> Result<ViewStateResult, errors::ViewStateError> {
+        match get_account(state_update, account_id)? {
+            Some(account) => {
+                let code_len = state_update
+                    .get_code_len(
+                        account_id.clone(),
+                        account.local_contract_hash().unwrap_or_default(),
+                    )?
+                    .unwrap_or_default() as u64;
+                if let Some(limit) = self.state_size_limit {
+                    if account.storage_usage().saturating_sub(code_len) > limit {
+                        return Err(errors::ViewStateError::AccountStateTooLarge {
+                            requested_account_id: account_id.clone(),
+                        });
+                    }
+                }
+            }
+            None => {
+                return Err(errors::ViewStateError::AccountDoesNotExist {
+                    requested_account_id: account_id.clone(),
+                });
+            }
+        };
+
+        let mut values = vec![];
+        let query = trie_key_parsers::get_raw_prefix_for_contract_data(account_id, prefix);
+        let acc_sep_len = query.len() - prefix.len();
+        let mut iter = state_update.trie().disk_iter()?;
+        iter.remember_visited_nodes(include_proof);
+        iter.seek_prefix(&query)?;
+        for item in &mut iter {
+            let (key, value) = item?;
+            values.push(StateItem { key: key[acc_sep_len..].to_vec().into(), value: value.into() });
+        }
+        let proof = iter.into_visited_nodes();
+        Ok(ViewStateResult { values, proof })
+    }
+
+    pub fn call_function(
+        &self,
+        mut state_update: TrieUpdate,
+        view_state: ViewApplyState,
+        contract_id: &AccountId,
+        method_name: &str,
+        args: &[u8],
+        logs: &mut Vec<String>,
+        epoch_info_provider: &dyn EpochInfoProvider,
+    ) -> Result<Vec<u8>, errors::CallFunctionError> {
+        let now = Instant::now();
+        let root = *state_update.get_root();
+        let account = get_account(&state_update, contract_id)?.ok_or_else(|| {
+            errors::CallFunctionError::AccountDoesNotExist {
+                requested_account_id: contract_id.clone(),
+            }
+        })?;
+        // TODO(#1015): Add ability to pass public key and originator_id
+        let originator_id = contract_id;
+        let public_key = PublicKey::empty(KeyType::ED25519);
+        let empty_hash = CryptoHash::default();
+        let mut receipt_manager = ReceiptManager::default();
+        let config = self.runtime_config_store.get_config(view_state.current_protocol_version);
+        let apply_state = ApplyState {
+            apply_reason: ApplyChunkReason::ViewTrackedShard,
+            block_height: view_state.block_height,
+            // Used for legacy reasons
+            prev_block_hash: view_state.prev_block_hash,
+            shard_id: view_state.shard_id,
+            epoch_id: view_state.epoch_id,
+            epoch_height: view_state.epoch_height,
+            gas_price: Balance::ZERO,
+            block_timestamp: view_state.block_timestamp,
+            gas_limit: None,
+            random_seed: root,
+            current_protocol_version: view_state.current_protocol_version,
+            config: Arc::clone(config),
+            cache: view_state.cache,
+            is_new_chunk: false,
+            save_receipt_to_tx: false,
+            congestion_info: Default::default(),
+            bandwidth_requests: BlockBandwidthRequests::empty(),
+            trie_access_tracker_state: Default::default(),
+            on_post_state_ready: None,
+        };
+        let function_call = FunctionCallAction {
+            method_name: method_name.to_string(),
+            args: args.to_vec(),
+            gas: self.max_gas_burnt_view(view_state.current_protocol_version),
+            deposit: Balance::ZERO,
+        };
+        let action_receipt = ActionReceipt {
+            signer_id: originator_id.clone(),
+            signer_public_key: public_key,
+            gas_price: Balance::ZERO,
+            output_data_receivers: vec![],
+            input_data_ids: vec![],
+            actions: vec![function_call.clone().into()],
+        };
+        let receipt = Receipt::V0(ReceiptV0 {
+            predecessor_id: contract_id.clone(),
+            receiver_id: contract_id.clone(),
+            receipt_id: empty_hash,
+            receipt: ReceiptEnum::Action(action_receipt.clone()),
+        });
+        let pipeline = ReceiptPreparationPipeline::new(
+            Arc::clone(config),
+            apply_state.cache.as_ref().map(|v| v.handle()),
+            state_update.contract_storage().clone(),
+            epoch_info_provider.chain_id(),
+        );
+        let max_gas_burnt_view = self.max_gas_burnt_view(view_state.current_protocol_version);
+        let view_config = Some(ViewConfig { max_gas_burnt: max_gas_burnt_view });
+        let contract_id_resolved = RuntimeContractIdentifier::resolve(
+            contract_id,
+            account.contract().into_owned(),
+            &state_update,
+            &config.wasm_config,
+            &epoch_info_provider.chain_id(),
+            AccessOptions::DEFAULT,
+        )?;
+        let contract =
+            pipeline.get_contract(&receipt, contract_id_resolved, 0, view_config.clone());
+
+        let mut runtime_ext = RuntimeExt::new(
+            &mut state_update,
+            &mut receipt_manager,
+            contract_id.clone(),
+            account,
+            empty_hash,
+            view_state.epoch_id,
+            view_state.block_height,
+            epoch_info_provider,
+            view_state.current_protocol_version,
+            config.wasm_config.storage_get_mode,
+            Arc::clone(&apply_state.trie_access_tracker_state),
+        );
+        let outcome = execute_function_call(
+            contract,
+            &apply_state,
+            &mut runtime_ext,
+            originator_id,
+            &VersionedActionReceipt::from(action_receipt),
+            [].into(),
+            &function_call,
+            &empty_hash,
+            config,
+            true,
+            view_config,
+        )
+        .map_err(|e| errors::CallFunctionError::InternalError { error_message: e.to_string() })?;
+        let elapsed = now.elapsed();
+        let time_ms =
+            (elapsed.as_secs() as f64 / 1_000.0) + f64::from(elapsed.subsec_nanos()) / 1_000_000.0;
+        let time_str = format!("{:.*}ms", 2, time_ms);
+
+        if let Some(err) = outcome.aborted {
+            logs.extend(outcome.logs);
+            let message = format!("wasm execution failed with error: {:?}", err);
+            tracing::debug!(target: "runtime", %time_str, %message, "exec time and error message");
+            let error: near_primitives::errors::FunctionCallError =
+                crate::conversions::Convert::convert(err);
+            Err(errors::CallFunctionError::VMError { error, error_message: message })
+        } else {
+            tracing::debug!(target: "runtime", %time_str, ?outcome, "exec time and result of execution");
+            logs.extend(outcome.logs);
+            let result = match outcome.return_data {
+                ReturnData::Value(buf) => buf,
+                ReturnData::ReceiptIndex(_) | ReturnData::None => vec![],
+            };
+            Ok(result)
+        }
+    }
+
+    fn max_gas_burnt_view(&self, protocol_version: ProtocolVersion) -> Gas {
+        self.max_gas_burnt_view.unwrap_or_else(|| {
+            self.runtime_config_store
+                .get_config(protocol_version)
+                .wasm_config
+                .limit_config
+                .max_gas_burnt
+        })
+    }
+}

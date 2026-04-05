@@ -1,0 +1,2 @@
+pqc_host_fns: { old: false, new: true }
+ed25519_verify_available: { old: true, new: false }
