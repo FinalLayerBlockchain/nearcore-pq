@@ -1,0 +1,57 @@
+[package]
+name        = "near-crypto"
+version     = { workspace = true }
+authors     = { workspace = true }
+edition     = { workspace = true }
+rust-version = { workspace = true }
+repository  = { workspace = true }
+license     = { workspace = true }
+description = "Post-quantum cryptographic primitives for Final Layer (NIST FIPS 204/205/206)"
+
+# ==============================================================================
+# PQC CRYPTO CRATE
+#
+# Replaces nearcore's near-crypto which used Ed25519/secp256k1.
+# All signing is now done with NIST-standardized PQC algorithms:
+#
+#   KeyType::MlDsa  (0) — ML-DSA Dilithium3  (FIPS 204) — validators
+#   KeyType::FnDsa  (1) — FN-DSA Falcon-512  (FIPS 206) — user wallets
+#   KeyType::SlhDsa (2) — SLH-DSA SPHINCS+   (FIPS 205) — governance
+#
+# Key string format:  "<keytype>:<bs58-encoded-key>"
+# Examples:
+#   "mldsa:2LtqmD..."
+#   "fndsa:34emUD..."
+#   "slhdsa:4Xyz..."
+# ==============================================================================
+
+[features]
+default = ["rand"]
+rand    = []   # Enables from_random() constructors — disable for deterministic-only builds
+
+[dependencies]
+# PQC signing algorithms
+pqcrypto-dilithium  = { workspace = true }
+pqcrypto-falcon     = { workspace = true }
+pqcrypto-sphincsplus = { workspace = true }
+pqcrypto-traits     = { workspace = true }
+
+# SHA3 for SHAKE256-DRBG in from_seed_drbg()
+sha3 = { workspace = true }
+
+# Serialization
+borsh      = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+
+# Encoding
+bs58 = { workspace = true }
+
+# AccountId for signer types
+near-account-id = { workspace = true }
+
+# Schema check derive macro (kept for protocol schema compatibility)
+near-schema-checker-lib = { version = "0.0.0", optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
