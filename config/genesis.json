@@ -1,0 +1,333 @@
+{
+  "protocol_version": 85,
+  "genesis_time": "2026-04-01T00:00:00Z",
+  "chain_id": "final-layer-mainnet",
+  "genesis_height": 0,
+  "num_block_producer_seats": 1,
+  "dynamic_resharding": false,
+  "protocol_upgrade_stake_threshold": [
+    4,
+    5
+  ],
+  "epoch_length": 43200,
+  "gas_limit": 1000000000000000,
+  "min_gas_price": "100000000",
+  "max_gas_price": "10000000000000000000",
+  "block_producer_kickout_threshold": 80,
+  "chunk_producer_kickout_threshold": 80,
+  "chunk_validator_only_kickout_threshold": 80,
+  "target_validator_mandates_per_shard": 1,
+  "online_min_threshold": [
+    9,
+    10
+  ],
+  "online_max_threshold": [
+    99,
+    100
+  ],
+  "gas_price_adjustment_rate": [
+    1,
+    100
+  ],
+  "validators": [
+    {
+      "account_id": "king.fl",
+      "public_key": "fndsa:34emUD68dvZN4P44HrA9utdXznCi8M1WbqGdSbPzqjQPcnjtsMdhjjn9mHMrVvsdgpTfdJg3RY5mruMCRZUpnHNgWJZ4NrA5X2c1Ez6JGwmpC5TBdkgmL5XG4Ra14JCY4XtgGdHE6n71kLeqs3k5Si3avXfdLGWn3TjmGVVLJn7jyK7rs5u55aNun1PwtsHJsML9Z5SqLjzoaNa8bznJiGRu1E7bgQRdNFq2cMy2PpUse9T9txQyUPXd9CiezL7DMysUXfRi3vLvjVhJn65tsyXdbnvJiBQ4pEneJcoZ5cq9r7CRodZ4vrGnZ8SMmexgEfpeQ8jQtZ3LcMKUtehYFWRnXnjcM6T5c9c7nE3gL96VmjFq2XzJiVYah1vrsa9teoThsU3UAyrkso7h4kCuVkzMgUKbRNKFB2g3rTMkbmFg2T72vmpzhhH6ukC9wE9TA9SzPzvURE81KRUUm5KgbNX3Z6LtWCYrQYRbpizwBHnyPmrjVuzvEz3EvhASAHPFMfkeyRcUR1ukDFvpi6tYr7Pj1xLisSPjrhf3d87EuASsPPuQmtCgBAJGb6kzNhDpRM4RLDyQYx7D6rUrsEQmD8JMFCnbPsiGoEwqNThBs5rBkd5jTxEDADxW94j1qQ7fB6janHVde2DqmaS8zzfwzHDfL4PUwpx2DciqCQbhYW3PDsGC1ZLDPFQEWRAuvjLjYL7buoGaekyk26gZCEfuNFY73zYHcXvfn2FnpucK3fMVSe3MsaXD3kLTye1tXiyVpPaMVG581hk9BR93tbLfyBxKKXyGZpaZ7abHpSHcfLgHR5KTmavvwnmbzBgut5GXykQfCuCfTG2tXhoCqVJBcXmUFL4TiWcgMBBJZ9AnmfAWK6L2nhZyYxm22tKUrUUEcxy7Uw893FkQbWABW89dBXhUY5t934PT8iExfm7MA5a1M7TozbcCLLGMAsKghoAcvajRrnTQBVFQGqxGkrGe1boFZEusNbJZSHcPzfnVLszEby5ddC9tyDupE8cx2mAakkkF8U6o8ZiYvuAMTZPv2XP8HVghthMQjrdnxpmqamr2p1PheD9MyQKu11Bo67DKTrkzKLiQ4jqVEyCKtshzsotgU9cS3byZLCqHHjweKoNvMCseEFsukwRFFJQx6sDvMDFbo4TKneRkCtA4NnzrBRT9yHysMuWdmDkYcNyJdFWihnMfDpTf8BbZzxM518GdtkDQ4Pdop",
+      "amount": "5000000000000000000000000000000"
+    }
+  ],
+  "transaction_validity_period": 86400,
+  "protocol_reward_rate": [
+    1,
+    10
+  ],
+  "max_inflation_rate": [
+    1,
+    10
+  ],
+  "total_supply": "11000000000000000000000000000000",
+  "num_blocks_per_year": 21024000,
+  "protocol_treasury_account": "treasury.fl",
+  "fishermen_threshold": "10000000000000000000000000",
+  "minimum_stake_divisor": 2200,
+  "shard_layout": {
+    "V2": {
+      "boundary_accounts": [
+        "bb",
+        "cc",
+        "ee",
+        "gg",
+        "ii",
+        "ll",
+        "qq",
+        "tt"
+      ],
+      "shard_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "id_to_index_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8
+      },
+      "index_to_id_map": {
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8
+      },
+      "shards_split_map": null,
+      "shards_parent_map": null,
+      "version": 0
+    }
+  },
+  "minimum_validators_per_shard": 1,
+  "max_kickout_stake_perc": 100,
+  "minimum_stake_ratio": [
+    1,
+    6250
+  ],
+  "shuffle_shard_assignment_for_chunk_producers": false,
+  "use_production_config": false,
+  "num_chunk_producer_seats": 1,
+  "num_chunk_validator_seats": 1,
+  "chunk_producer_assignment_changes_limit": 5,
+  "records": [
+    {
+      "Account": {
+        "account_id": "king.fl",
+        "account": {
+          "amount": "4949990000000000000000000000000",
+          "locked": "5000000000000000000000000000000",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 0,
+          "version": "V1"
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "king.fl",
+        "public_key": "fndsa:34emUD68dvZN4P44HrA9utdXznCi8M1WbqGdSbPzqjQPcnjtsMdhjjn9mHMrVvsdgpTfdJg3RY5mruMCRZUpnHNgWJZ4NrA5X2c1Ez6JGwmpC5TBdkgmL5XG4Ra14JCY4XtgGdHE6n71kLeqs3k5Si3avXfdLGWn3TjmGVVLJn7jyK7rs5u55aNun1PwtsHJsML9Z5SqLjzoaNa8bznJiGRu1E7bgQRdNFq2cMy2PpUse9T9txQyUPXd9CiezL7DMysUXfRi3vLvjVhJn65tsyXdbnvJiBQ4pEneJcoZ5cq9r7CRodZ4vrGnZ8SMmexgEfpeQ8jQtZ3LcMKUtehYFWRnXnjcM6T5c9c7nE3gL96VmjFq2XzJiVYah1vrsa9teoThsU3UAyrkso7h4kCuVkzMgUKbRNKFB2g3rTMkbmFg2T72vmpzhhH6ukC9wE9TA9SzPzvURE81KRUUm5KgbNX3Z6LtWCYrQYRbpizwBHnyPmrjVuzvEz3EvhASAHPFMfkeyRcUR1ukDFvpi6tYr7Pj1xLisSPjrhf3d87EuASsPPuQmtCgBAJGb6kzNhDpRM4RLDyQYx7D6rUrsEQmD8JMFCnbPsiGoEwqNThBs5rBkd5jTxEDADxW94j1qQ7fB6janHVde2DqmaS8zzfwzHDfL4PUwpx2DciqCQbhYW3PDsGC1ZLDPFQEWRAuvjLjYL7buoGaekyk26gZCEfuNFY73zYHcXvfn2FnpucK3fMVSe3MsaXD3kLTye1tXiyVpPaMVG581hk9BR93tbLfyBxKKXyGZpaZ7abHpSHcfLgHR5KTmavvwnmbzBgut5GXykQfCuCfTG2tXhoCqVJBcXmUFL4TiWcgMBBJZ9AnmfAWK6L2nhZyYxm22tKUrUUEcxy7Uw893FkQbWABW89dBXhUY5t934PT8iExfm7MA5a1M7TozbcCLLGMAsKghoAcvajRrnTQBVFQGqxGkrGe1boFZEusNbJZSHcPzfnVLszEby5ddC9tyDupE8cx2mAakkkF8U6o8ZiYvuAMTZPv2XP8HVghthMQjrdnxpmqamr2p1PheD9MyQKu11Bo67DKTrkzKLiQ4jqVEyCKtshzsotgU9cS3byZLCqHHjweKoNvMCseEFsukwRFFJQx6sDvMDFbo4TKneRkCtA4NnzrBRT9yHysMuWdmDkYcNyJdFWihnMfDpTf8BbZzxM518GdtkDQ4Pdop",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "alpha.fl",
+        "account": {
+          "amount": "200000000000000000000000000000",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 0,
+          "version": "V1"
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "alpha.fl",
+        "public_key": "fndsa:35K8d7VwN3oqTStVMXx5gEBdPPvar66a87FERBYjdqLN4rHb7H25eeJJkMdxxixfee5yjQudUn2s3RxyoP8fsjjhm7vELv6UXqi1BVqBqVwNDQv9bEZmQuNdeeMBiZoEDysiUjwkVGKbUeJwQiZ9TtmUTj59MCiK7ohZuSw2BW9TP1tyYA1cNbePdZeWJYExrKr6uUrfevK1Nv3pUeTK4DfJQZH7Nt11quf61qUT8xnQyd1jjVw2Cqw82XDSeQocaFEMikAExed6xyzUvAnx34CqtDjkYDV6kxXfHJBSneDMcyQraNkBgF4SHzK8wtjmRXd3JSgEghx6xMo9q4EsVffhhAJgehPH96MzyNBJcvEM6n6snqJKY3uWi4gHWiSeGUqKkzJ8L6V7ruKoiZD7yJWNQgFJ4H5y2TXNvvMihcujt75vmz2yM4ShrJfz7BGRSgkbeaaMeiPWtjFzzVQ6VpSu4qpWwDs2si4a3f3KEM8tHfK7qo1gM7udnsaiFRuuJoNdgUxegopbLevq5FmefF447z4ZEwYWtkqNTDHSKHxxocMmnLPuk6tcnhWY7RhT9L9rzW6m4JDdXiW252AiGkUtMNffxzZdyh3BCV8ufk8vJo3LCBjS8Y1GVAEyRDBS6PJwuXiGz6BzsrAFaESJznrXhAa179dvpx2iTB1wcszKjJhXKKAyRMbNTCarSUkkadwK9PbhJ7u74kWHtxzXfZyCZW4qGTLg4UXuRKNJg18S4jN12pHaa4ZNeDUz1LiJs2dkTA6SJrAFNWPckxJNcY6FbE7mtPyLqmmZE9Cg5krA9oNemEmSBxTvpEd8soHdcJrfVfgAwDb4tvvDtgfH3cEMsgsozJDWBM6F7GS4WWr4Fe5KR65Xz5bt7U92t9G751vJbE9k1X6fyArM8GjRfGdisqFiEJUJwFVJ7rAFoC6CSAcoTt3FgP5K5ZjUoTzSSkLCPcVGeJSLmF6p4eSHt33EMTzcjoz3o5iMF8NWbU1VxR9RdVofd1syKxeYBLBJ17k1XKWyuoZrxoNXXEztB2QDX52gcCNKCa8NffBDhUc4hJC4bysJnMeYnNn8Zc5cJSTaZ8TzTz5QHBusS9a4hLwrrvoVKkYSM41VoH4DmgpQbgWSpw86engVSAk3QLz8r99dXYuuNvSusjHukRRYmKCopH2wYD6bEMHJ9RNnyL4rPk2qTJhm3GZ1xdxaLEpHUtYTNqPVe",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "beta.fl",
+        "account": {
+          "amount": "200000000000000000000000000000",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 0,
+          "version": "V1"
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "beta.fl",
+        "public_key": "fndsa:39Bku8gkZaGmAWs2BhMzwFsGUZNB5iXtuePsA638ujTRzMkNBkMBFUe2WotWgoH6UrPY9vG3xuQ6sw6cv3BuVTgpgUuy7GGFCK6ePHvnpZWbfhvUC8Tbsh6w5Ht3XWKnPs2Hc9pvCZKRjnVctHM6WH1N93XKcFmsz7VFBG2HWGd11X85WmDRW6L7gKz346NixV1zxCgcnxT8Dgkbhw1ZtwTdPkKY4U4jm2fTcCgAdB3YdKDiW9vefGnG6adyc16GYaWfjNt4XgtRh3obmgJekdTxFLiNZSsPwvqM3MsSYTsHwXDXnNKoxHp4V9JE5UwqfUDYRJAGdTyvGbxTRev6n7JpJJVhjurSaXXyS9Ubf5swd7QG9YPyMHD1BaEvckYfE7CCcHFap9uNzQp2jNXm3EywAiBFw68YBrGnkawUSTgdSRrw7UjKquRa39mTeVUBccaP52CAsAs9NBvKc8TKaNXveCA2EX7LV56BcVp1x8E97veEYSzjF35YTyUXpm3BqLxp4sAcpry9et4HXKzz396YmEcuiKQ8w5dyRUcJE4nMjh4DFVD7GazHmwVWvqp7zvZDXedptknWX453k9QgmiY1yY2oZC4iRF2vVWPAR4EViUYaDSecSVmdbvYT5Cbd5xgTqrEssX6DCPGb4Kh4hZCfThGX9QVgKg9DAgnDc3RXxMgTPf4WNfKirGdsu7KmAvmGqTR1htMW35SvndowHyrWSHRpxsAMfxqbFdLdRV6xbLeTrduZ5Nwo5VSzE4QBcVJmdizabRf92XgrbrTzJXfLDFrAfeyWmx1o418aeehMViwLqtcw8aDs559bD8bVUwsVyPLYnkVEoqYor6imcZUM2F4MGjFuh14yX8V4X3okW56xJHVgbPB9NGmvbgPwyowxCeHokfWw8ASGHU2DjRq3x7HHqWyaN6VA7hcLncgffEa4KkWeKZVqAc5wsMJjLvWGQqCnvFMMBLhFLcEbkk1w6ZbwLuVnjmijMKvubuiV2FqASVVpLXGFhZpwpPvoWVs3wk4QUQwv4FvwgefJtmnmbP7QcVq6H3hjAE7K6vfszyEgkmtG5ekvbGgQpF4FUhLCP2TMGFFTsxBQSUfS3BxZPjrBxXBBaHS69sjRdujZRzBm4H6fLrP4a84bEBo8ba3bJ8i5Vh6ttt6DkA8bLWL3PLjYVF537g2EVdb5K1x2kVxmJGqJHC4THzmRQjKnXQQkf8DDB",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "gamma.fl",
+        "account": {
+          "amount": "200000000000000000000000000000",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 0,
+          "version": "V1"
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "gamma.fl",
+        "public_key": "fndsa:3A3jHmtmatLHhrDiucmaiXPztjz1NGniFEL7ExDYb99Xhe4rHSoyuzvaXLf7K7FwyVHa43vRRAxBhDfPTmMe6C7AjRFqLszodCGxKrDcjD4Bdi3CNhEe1WvwNt6pyGuJ3XBUmspTSgShsVZxLcahXRV3pqELHjNXv7yxTyUk5iAJhieY7yx9MDYHy7g8aXxHYLd7WezEuhNhB2BECADcyR3uwLQdeZawEG1QV2rt7vFbGL2HZTzZkQDNbb2xXqqgAN3vUv75NG8118foREsG4SUGJgxURgtaBsjTeyoJqqLk8rBZsvrhYHgDPXCVLqJLSnLYvkiVwW6PqMroDbY6ANTNecBgRVmDBdmysRvfACrT6E3F7ritBev9Gyfgf5CUATcAn7n19FgXZD4rtW2721NHqZdAN8jSfTPMyidGSUSXM1NCwc1MhuD6ydyAZDXAKtfyMkB4fxrJ1qR4Sv5AwTB7boKoYtXKi7qUNkeW4jC4yzMdVGvX3WcoMADsbB1dmdYuM7tGZG6koVUFHSLfuJZSMstwEyWUCpfsr1oTvwBawEpXcfPba9JVcZggPCeMfzWuqdpL8BHojHBhF5wobPXU8vsMefqyUrZrFXD1PmG8Ba66foidmSYGwApMkH9JdpRYR2poAMBBX3UTtH9NWcsfqJbshgazTeXsz9EPLq7ajkZ7LqAfwBJChYC6i1vL7ik1RppKoqF76AjjdyiFbsko1DWcsudwzytBVJCn5fbXph3aCdqo9hy4xLX3MS9jjFwmJqT8Z2ebpTV5agCcz2qczioUcnRfbRwqpCN79bwT5J7cDHXxLCzmuaLfEHJcZNwVU9JSQLHC7R3bbSEFHsndapyNPRmhTLghP6Gapwgk6ee6e2b7qTdW9fZ4vqc9ABYhGRbrkPLFmQQ1fSJhKKmFfUfzh8c8w3Xq5kKxatYd3vWEG3e63V4ng3nFhzf4ycPWGJhnpkPMu2vAjgbFHmhEiYEs6BK3MzDLKnrZcxsypDrpGSFqums6tQBt48XwrJj5psU9cnYKbGJBNwHQVcwHYL8Hk3yLcdkMfVDYHU5FKh7dumHvCrMpbqtBArbydgz22M8DnvBtF6G9vsrGC1kff8q9bZJ2VaBUJMLzQ3wsGYjGmxMRY56yvjiTnJMgLHTccGVDJiPQq7V35wXg6GSBsahCNYvbFzM4GpwosinMYbvceM7wwKPLDxQNHNHcyyg8wP6aJ",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "delta.fl",
+        "account": {
+          "amount": "200000000000000000000000000000",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 0,
+          "version": "V1"
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "delta.fl",
+        "public_key": "fndsa:39gfDDx5PmJhKYkSZrdguvbFgaUrjgZGaEmDWX52n7uxcjWWrqGm8kZN8htuLV94ZuiHzDw5i42u2AgtL2Ff2GRfPEyufZQAJmTrba9gfGABvDQu5N2b2tJnCtKfieQMeYPQTixFiRG5UgKks9kMNYQi7YgKFngFqsEWezfk9Zg111gUN7Pos6zSMyztCGWRh9gTaBmq9Zzzhe1tgKSd6woXtNuwU3fULHPhaVPLXug9nMpsBXrqsx37XL5bA7bkwgL9aj7QD2ySeS6MN68W8Kwe73Se3uBmg2xYuDHQuiaFPzghcDjHLKsCUSyNzReEFMFZ3YKfGADWV67hxKkZSoJbmQ1oa7B4uf5qt355feauSULpp3PjgisUuHccz5tHW3PSFbV8WTbEsLfmtFwjrZGGwZCWqXFMuRzwgi9mu4cEVMaeGzKwVrzrKMcMA9cN7bsiHmVgCJxXTqrQQLTDNtCtin3ydo8ayjeaBMGVwC6R838zdin4B5rxdYbnkuiVyf7x2nzVLDzbWPxTWEZg5M4QtDEYzQVKrhPAdtZNN7g7fnvmi2ktXjzUAyf4pJL5JFewqdFwJkLV2VUD2AEMW5T3MwBVmq2FtoxE3Jbyd85m1Q4A3nQZK52SAATvstH6yHncwU1kZmB5L6hwJN9HadwTN3cFyo1ycvb69jVh3rnZiT3uJEQgxKxgchxDS1L3dfG3RAKrWuf7eXtEdckcyyRwi7V76w7pBiEEeJVtgMWpaQEt46ns7yFvbrQVXkL2vtYz2C7cCHRQzsUAZCDmJUtbZhNfLgutfGHH5Gast8MRPax935DmPZ13Nbrpp4jUdR8JbsVHVT4NTtdM2VwiNepZYzPiQzVWSjoTx9zQwBjtChF3E85MugiSLev2CJ67wBNivM2TgF2HNUG77hFPsMKVDgezt7SFpL9tpo7zY9u61vqaAaG1qqq9saxAkNQbsGruuc1gRDBKSB57MaPcYvMkjAqBWs3bT1UMKAiyi4xg3KJFx3okkdWvrxAHZDvwnrSDQDJRar3C9mT78iuEdekPHqZRxpGgytK4dkHEvXrMMyoZZxJzMottAsRjG5CDMhJWu95M1yLAbARUsF8ENVC5cztxCkCcvCHatoyGwJhkUMQmbr2MieehQuWZGx6p216SsBy8md1464t433BRuNH2WhLuFpCenfdd6is3HazoqR4orhHodp49aH2CCCQSpWshkHfjN",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "epsilon.fl",
+        "account": {
+          "amount": "200000000000000000000000000000",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 0,
+          "version": "V1"
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "epsilon.fl",
+        "public_key": "fndsa:33KBS9ahDrvCdfhGmUgSZ8vAuA9eUfUmV6zzH33VkvAcN8AYWWEMj32QTjNsQ81YJL3hShKRv7GwuPdWs13Pe6u9NwbZJPkiHYbRCKEiQxqEnDi2nGuf4CmyJQbvMQvpVyid6jfb8qzQhXkmwVM3hAm3ncqSJV9PZapBe6SH9xmgFqj4GYxcar3k8E5mx2JnZD8j9csroNxM3GgeutDb8NbgUsRm1iUYrZ2wqAR6mLHqvkSDnv8kefnBPPHLZ3tYvxx7FxSEPn6jFqKEwGXpiF8jV2CJNUdih4EfsnBELyGZn11sw8JJr1a96cJ5xqG9nc7X3RemmWuuGFe2gSC7iN9pDS7XG9YmtgDUYUWYfQRDWLBTjVFQKufbkJWuYmjbYTW3BvwKtbdUTvzZbXiVz2mYCkTd4fzwHPV9GtFvE8RUM66EKNApmAzsMJV3moV6mHTiUjZYPHi86B7zgitGM2wEVnVY3BYfhJ4JKSDRr2GvgyQfsBdNTv8PUvjZTvSabBeViDKXm4QyMy7z5Vw9e58N8eQSpaj4hsXFQsBKRnqpazUdJuSY1sfCVmV8a5ydNe2UyTxRcwDRTzywAFsnkUoysqpSaCCXbBqRTLBBEu4ds4bkpay5gr2xHTiyCDokg5RPEnXSHAF2egi8bx4H4zZziradCjWvYrJT2tEthaq1TyghcSrS6qwSx4LzqWPkbsSafjV9jxB2gWmgVaRrRKrZmdkAi5QadyjvMPxE3R5MAxcMbczy4VX3c65irZYTgMvfbpj2Qt9PXfpBGbvY2KfWrH6BipM6mYy1HbbaK6sXYur9P6CpTR5pZMSpYuCLYtB5W5PSXMsvJMcRVgZjZWjYJhpi1nsmUbqqgAxVbb3qvcVCGVkrnBxH4ZRgBShX1t33PCjneJ3mb9qcj5ZHZHUwRB99oRDeT2q1nsKZy7MReknFaxQaCBzVyKRgfB863Jx3FWyCaqWb2B1P6zozrpS3ExM7gvrgqddtWXQuLGgwgePgj9fMfYZVQASemnQMFQLxoS9LutnizRHpphRzxWjwutNdF2Ny38LgkSuotxDSduz9KSyqhgAketxCC3UBXWKtVC1KeMxH6Nc9VkHhY3RRwaDf5KPgU1E5HoZnNtgHxoV4X65iix4CcCnizRxGvsTyMJPQenyf1BQdjfeNoSGpNszkWizdSaDdg8xLeDnFyQMoiv3XRwowudahVWoynrouS4SC2",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "treasury.fl",
+        "account": {
+          "amount": "0",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 0,
+          "version": "V1"
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "treasury.fl",
+        "public_key": "fndsa:34emUD68dvZN4P44HrA9utdXznCi8M1WbqGdSbPzqjQPcnjtsMdhjjn9mHMrVvsdgpTfdJg3RY5mruMCRZUpnHNgWJZ4NrA5X2c1Ez6JGwmpC5TBdkgmL5XG4Ra14JCY4XtgGdHE6n71kLeqs3k5Si3avXfdLGWn3TjmGVVLJn7jyK7rs5u55aNun1PwtsHJsML9Z5SqLjzoaNa8bznJiGRu1E7bgQRdNFq2cMy2PpUse9T9txQyUPXd9CiezL7DMysUXfRi3vLvjVhJn65tsyXdbnvJiBQ4pEneJcoZ5cq9r7CRodZ4vrGnZ8SMmexgEfpeQ8jQtZ3LcMKUtehYFWRnXnjcM6T5c9c7nE3gL96VmjFq2XzJiVYah1vrsa9teoThsU3UAyrkso7h4kCuVkzMgUKbRNKFB2g3rTMkbmFg2T72vmpzhhH6ukC9wE9TA9SzPzvURE81KRUUm5KgbNX3Z6LtWCYrQYRbpizwBHnyPmrjVuzvEz3EvhASAHPFMfkeyRcUR1ukDFvpi6tYr7Pj1xLisSPjrhf3d87EuASsPPuQmtCgBAJGb6kzNhDpRM4RLDyQYx7D6rUrsEQmD8JMFCnbPsiGoEwqNThBs5rBkd5jTxEDADxW94j1qQ7fB6janHVde2DqmaS8zzfwzHDfL4PUwpx2DciqCQbhYW3PDsGC1ZLDPFQEWRAuvjLjYL7buoGaekyk26gZCEfuNFY73zYHcXvfn2FnpucK3fMVSe3MsaXD3kLTye1tXiyVpPaMVG581hk9BR93tbLfyBxKKXyGZpaZ7abHpSHcfLgHR5KTmavvwnmbzBgut5GXykQfCuCfTG2tXhoCqVJBcXmUFL4TiWcgMBBJZ9AnmfAWK6L2nhZyYxm22tKUrUUEcxy7Uw893FkQbWABW89dBXhUY5t934PT8iExfm7MA5a1M7TozbcCLLGMAsKghoAcvajRrnTQBVFQGqxGkrGe1boFZEusNbJZSHcPzfnVLszEby5ddC9tyDupE8cx2mAakkkF8U6o8ZiYvuAMTZPv2XP8HVghthMQjrdnxpmqamr2p1PheD9MyQKu11Bo67DKTrkzKLiQ4jqVEyCKtshzsotgU9cS3byZLCqHHjweKoNvMCseEFsukwRFFJQx6sDvMDFbo4TKneRkCtA4NnzrBRT9yHysMuWdmDkYcNyJdFWihnMfDpTf8BbZzxM518GdtkDQ4Pdop",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "validator-1.fl",
+        "account": {
+          "amount": "25000000000000000000000000000",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 182
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "validator-1.fl",
+        "public_key": "mldsa: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",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "validator-2.fl",
+        "account": {
+          "amount": "25000000000000000000000000000",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 182
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "validator-2.fl",
+        "public_key": "mldsa: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",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    },
+    {
+      "Account": {
+        "account_id": "token.fl",
+        "account": {
+          "amount": "10000000000000000000000000",
+          "locked": "0",
+          "code_hash": "11111111111111111111111111111111",
+          "storage_usage": 182
+        }
+      }
+    },
+    {
+      "AccessKey": {
+        "account_id": "token.fl",
+        "public_key": "fndsa:34emUD68dvZN4P44HrA9utdXznCi8M1WbqGdSbPzqjQPcnjtsMdhjjn9mHMrVvsdgpTfdJg3RY5mruMCRZUpnHNgWJZ4NrA5X2c1Ez6JGwmpC5TBdkgmL5XG4Ra14JCY4XtgGdHE6n71kLeqs3k5Si3avXfdLGWn3TjmGVVLJn7jyK7rs5u55aNun1PwtsHJsML9Z5SqLjzoaNa8bznJiGRu1E7bgQRdNFq2cMy2PpUse9T9txQyUPXd9CiezL7DMysUXfRi3vLvjVhJn65tsyXdbnvJiBQ4pEneJcoZ5cq9r7CRodZ4vrGnZ8SMmexgEfpeQ8jQtZ3LcMKUtehYFWRnXnjcM6T5c9c7nE3gL96VmjFq2XzJiVYah1vrsa9teoThsU3UAyrkso7h4kCuVkzMgUKbRNKFB2g3rTMkbmFg2T72vmpzhhH6ukC9wE9TA9SzPzvURE81KRUUm5KgbNX3Z6LtWCYrQYRbpizwBHnyPmrjVuzvEz3EvhASAHPFMfkeyRcUR1ukDFvpi6tYr7Pj1xLisSPjrhf3d87EuASsPPuQmtCgBAJGb6kzNhDpRM4RLDyQYx7D6rUrsEQmD8JMFCnbPsiGoEwqNThBs5rBkd5jTxEDADxW94j1qQ7fB6janHVde2DqmaS8zzfwzHDfL4PUwpx2DciqCQbhYW3PDsGC1ZLDPFQEWRAuvjLjYL7buoGaekyk26gZCEfuNFY73zYHcXvfn2FnpucK3fMVSe3MsaXD3kLTye1tXiyVpPaMVG581hk9BR93tbLfyBxKKXyGZpaZ7abHpSHcfLgHR5KTmavvwnmbzBgut5GXykQfCuCfTG2tXhoCqVJBcXmUFL4TiWcgMBBJZ9AnmfAWK6L2nhZyYxm22tKUrUUEcxy7Uw893FkQbWABW89dBXhUY5t934PT8iExfm7MA5a1M7TozbcCLLGMAsKghoAcvajRrnTQBVFQGqxGkrGe1boFZEusNbJZSHcPzfnVLszEby5ddC9tyDupE8cx2mAakkkF8U6o8ZiYvuAMTZPv2XP8HVghthMQjrdnxpmqamr2p1PheD9MyQKu11Bo67DKTrkzKLiQ4jqVEyCKtshzsotgU9cS3byZLCqHHjweKoNvMCseEFsukwRFFJQx6sDvMDFbo4TKneRkCtA4NnzrBRT9yHysMuWdmDkYcNyJdFWihnMfDpTf8BbZzxM518GdtkDQ4Pdop",
+        "access_key": {
+          "nonce": 0,
+          "permission": "FullAccess"
+        }
+      }
+    }
+  ]
+}
