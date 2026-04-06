@@ -2,7 +2,7 @@
 
 Final Layer is a blockchain forked from [NEAR Protocol](https://near.org) with all elliptic curve cryptography replaced by NIST post-quantum standards. Ed25519 and secp256k1 are gone entirely, no fallback.
 
-For the staking contract, docs, and benchmarks check out [final-layer](https://github.com/FinalLayerBlockchain/final-layer).
+For the staking contract, docs, and benchmarks check out [final-layer-staking](https://github.com/FinalLayerBlockchain/final-layer-staking).
 
 ## What changed from NEAR Protocol
 
@@ -54,7 +54,7 @@ neard --home ~/.fl-node init --chain-id final-layer-mainnet --account-id <your-v
 neard --home ~/.fl-node run
 ```
 
-See [scripts/deploy-validator.sh](scripts/deploy-validator.sh) and the [docs](https://github.com/FinalLayerBlockchain/final-layer/tree/main/docs) for the full setup.
+See [scripts/deploy-validator.sh](scripts/deploy-validator.sh) and the [docs](https://github.com/FinalLayerBlockchain/final-layer-staking/tree/main/docs) for the full setup.
 
 ## Where the changes live
 
