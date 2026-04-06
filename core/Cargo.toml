@@ -1,0 +1,100 @@
+# ==============================================================================
+# FINAL LAYER BLOCKCHAIN — Workspace Cargo.toml
+# ==============================================================================
+#
+# Final Layer is a quantum-resistant fork of NEAR Protocol.
+# All classical cryptography (Ed25519, secp256k1) has been replaced with
+# NIST-standardized post-quantum algorithms:
+#
+#   ML-DSA  / Dilithium3  (FIPS 204) — validator signing
+#   FN-DSA  / Falcon-512  (FIPS 206) — user account keys (smallest signatures)
+#   SLH-DSA / SPHINCS+    (FIPS 205) — governance keys (hash-based security)
+#   ML-KEM  / Kyber-768   (FIPS 203) — P2P session key encapsulation
+#   AES-256-GCM                      — P2P session message encryption
+#
+# Chain:     final-layer-mainnet
+# TLD:       .fl
+# Token:     NEAR (yoctoNEAR = 10^-24 NEAR)
+# Version:   1.0.0-final-layer (protocol version 999)
+# ==============================================================================
+
+[workspace.package]
+version       = "1.0.0-final-layer"
+authors       = ["Final Layer Contributors"]
+edition       = "2021"
+rust-version  = "1.75.0"
+repository    = "https://github.com/final-layer/final-layer"
+license       = "MIT OR Apache-2.0"
+description   = "Final Layer — a quantum-resistant fork of NEAR Protocol"
+
+[workspace]
+resolver = "2"
+members = [
+    "near-crypto",
+    "near-primitives-core",
+    "near-primitives",
+    "near-chain-configs",
+    "near-epoch-manager",
+    "neard",
+]
+
+# ==============================================================================
+# WORKSPACE DEPENDENCIES
+# ==============================================================================
+
+[workspace.dependencies]
+
+# --- PQC Cryptography (NIST standards) ---
+
+# ML-DSA / Dilithium3 (FIPS 204) — validator signing, general purpose
+pqcrypto-dilithium = { version = "0.5", default-features = false }
+
+# FN-DSA / Falcon-512 (FIPS 206) — user account signing (smallest sigs in NIST set)
+pqcrypto-falcon = { version = "0.3", default-features = false }
+
+# SLH-DSA / SPHINCS+-SHA2-128s (FIPS 205) — governance keys (hash-only security)
+pqcrypto-sphincsplus = { version = "0.7", default-features = false }
+
+# ML-KEM-768 / Kyber (FIPS 203) — P2P session key encapsulation
+pqcrypto-kyber = { version = "0.8", default-features = false }
+
+# Shared traits (PublicKey, SecretKey, Signature, Ciphertext) across all pqcrypto crates
+pqcrypto-traits = { version = "0.3" }
+
+# AES-256-GCM — P2P session message encryption (after ML-KEM handshake)
+aes-gcm = { version = "0.10" }
+
+# SHA3 — session key derivation, RANDAO reveals, SPHINCS+ hash function
+sha3 = { version = "0.10" }
+
+# --- Serialization ---
+borsh      = { version = "1.0", features = ["derive"] }
+serde      = { version = "1",   features = ["derive"] }
+serde_json = "1"
+
+# --- Encoding ---
+bs58 = "0.5"
+hex  = { version = "0.4", features = ["serde"] }
+
+# --- Hashing (content addressing, not signing) ---
+sha2 = "0.10"
+
+# --- Numeric ---
+num-rational = { version = "0.4", features = ["serde"] }
+
+# --- Error handling ---
+anyhow    = "1"
+thiserror = "1"
+
+# --- Randomness ---
+rand = "0.8"
+
+# --- AccountId ---
+near-account-id = { version = "2.0.0", features = ["serde", "borsh"] }
+
+# --- Internal workspace crates ---
+near-crypto          = { path = "near-crypto" }
+near-primitives-core = { path = "near-primitives-core" }
+near-primitives      = { path = "near-primitives" }
+near-chain-configs   = { path = "near-chain-configs" }
+near-epoch-manager   = { path = "near-epoch-manager" }
