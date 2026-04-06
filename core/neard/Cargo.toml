@@ -1,0 +1,26 @@
+[package]
+name        = "neard"
+version     = "1.0.0-final-layer"
+authors     = { workspace = true }
+edition     = { workspace = true }
+rust-version = { workspace = true }
+repository  = { workspace = true }
+license     = { workspace = true }
+description = "Final Layer node daemon — quantum-resistant NEAR Protocol fork"
+
+# Build metadata: pqc-enabled
+# This is surfaced in the --version output and in protocol handshake.
+
+[[bin]]
+name = "neard"
+path = "src/main.rs"
+
+[dependencies]
+near-chain-configs   = { workspace = true }
+near-crypto          = { workspace = true }
+near-primitives      = { workspace = true }
+near-primitives-core = { workspace = true }
+near-epoch-manager   = { workspace = true }
+near-account-id      = { workspace = true }
+serde_json           = { workspace = true }
+anyhow               = { workspace = true }
