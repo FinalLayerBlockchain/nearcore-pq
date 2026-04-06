@@ -524,7 +524,7 @@ pub const MIN_SUPPORTED_PROTOCOL_VERSION: ProtocolVersion = 80;
 /// Current protocol version used on the mainnet with all stable features.
 /// v1002: Fixed APY staking (20%→5%→1%), minimum validator stake 1 000 FLC,
 ///        7-epoch unbonding period, stake-based reward formula.
-const STABLE_PROTOCOL_VERSION: ProtocolVersion = 1004; // ShardLayoutV2 migration: dynamic resharding enabled // PQC gas rebalance: ML-DSA 3.0T, SLH-DSA 8.0T
+const STABLE_PROTOCOL_VERSION: ProtocolVersion = 1004; // ShardLayoutV2 migration: dynamic resharding enabled
 
 // On nightly, pick big enough version to support all features.
 const NIGHTLY_PROTOCOL_VERSION: ProtocolVersion = 151;
