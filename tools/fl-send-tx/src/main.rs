@@ -258,10 +258,18 @@ fn cmd_call(args: &std::collections::HashMap<String, String>) -> anyhow::Result<
     let method = args.get("method").ok_or_else(|| anyhow::anyhow!("--method required"))?;
     let call_args = args.get("args").map(|s| s.as_bytes().to_vec()).unwrap_or_default();
     let rpc_url = args.get("rpc").map(|s| s.as_str()).unwrap_or(DEFAULT_RPC);
-    let deposit_yocto = args.get("deposit")
-        .and_then(|d| d.parse::<f64>().ok())
-        .map(|f| NearToken::from_yoctonear((f * YOCTO_PER_FLC as f64) as u128))
-        .unwrap_or(NearToken::from_yoctonear(0));
+    // --deposit-yocto: exact yoctoFLC u128 string (avoids f64 precision loss)
+    // --deposit: FLC amount as f64 (legacy)
+    let deposit_yocto = if let Some(yocto_str) = args.get("deposit-yocto") {
+        let yocto_u128: u128 = yocto_str.parse()
+            .map_err(|_| anyhow::anyhow!("--deposit-yocto must be a u128 integer string"))?;
+        NearToken::from_yoctonear(yocto_u128)
+    } else {
+        args.get("deposit")
+            .and_then(|d| d.parse::<f64>().ok())
+            .map(|f| NearToken::from_yoctonear((f * YOCTO_PER_FLC as f64) as u128))
+            .unwrap_or(NearToken::from_yoctonear(0))
+    };
     let gas: Gas = args.get("gas").and_then(|g| g.parse::<u64>().ok().map(Gas::from_teragas)).unwrap_or_else(default_gas);
 
     eprintln!("Call {}.{}({}) deposit={}", receiver, method, args.get("args").map(|s| s.as_str()).unwrap_or(""), deposit_yocto);
@@ -366,6 +374,71 @@ fn cmd_view_call(args: &std::collections::HashMap<String, String>) -> anyhow::Re
     Ok(())
 }
 
+
+fn cmd_deploy_global(args: &std::collections::HashMap<String, String>) -> anyhow::Result<()> {
+    let key_file = PathBuf::from(args.get("key-file").ok_or_else(|| anyhow::anyhow!("--key-file required"))?);
+    let wasm_path = args.get("wasm").ok_or_else(|| anyhow::anyhow!("--wasm required"))?;
+    let rpc_url = args.get("rpc").map(|s| s.as_str()).unwrap_or(DEFAULT_RPC);
+    // --mode: "code-hash" (default, immutable) or "account-id" (mutable, updatable by owner)
+    let deploy_mode = match args.get("mode").map(|s| s.as_str()) {
+        Some("account-id") => near_primitives::action::GlobalContractDeployMode::AccountId,
+        _ => near_primitives::action::GlobalContractDeployMode::CodeHash,
+    };
+
+    let code = std::fs::read(wasm_path)?;
+    let code_hash = near_primitives::hash::hash(&code);
+    eprintln!("DeployGlobalContract: {} ({} bytes)", wasm_path, code.len());
+    eprintln!("Code hash (sha256): {}", code_hash);
+    eprintln!("Deploy mode: {:?}", deploy_mode);
+
+    let signer = InMemorySigner::from_file(&key_file)?;
+    let signer_id = signer.get_account_id().to_string();
+
+    let result = build_and_send(rpc_url, &signer, &signer_id, vec![
+        Action::DeployGlobalContract(near_primitives::action::DeployGlobalContractAction {
+            code: code.into(),
+            deploy_mode,
+        }),
+    ])?;
+    print_result(&result);
+    Ok(())
+}
+
+fn cmd_use_global(args: &std::collections::HashMap<String, String>) -> anyhow::Result<()> {
+    let key_file  = PathBuf::from(args.get("key-file").ok_or_else(|| anyhow::anyhow!("--key-file required"))?);
+    let rpc_url   = args.get("rpc").map(|s| s.as_str()).unwrap_or(DEFAULT_RPC);
+
+    let identifier = if let Some(code_hash_str) = args.get("code-hash") {
+        let hash_bytes = bs58::decode(code_hash_str)
+            .into_vec()
+            .map_err(|e| anyhow::anyhow!("Invalid code-hash: {}", e))?;
+        let hash_arr: [u8; 32] = hash_bytes.try_into()
+            .map_err(|_| anyhow::anyhow!("code-hash must decode to 32 bytes"))?;
+        near_primitives::action::GlobalContractIdentifier::CodeHash(
+            near_primitives::hash::CryptoHash(hash_arr)
+        )
+    } else if let Some(account_id_str) = args.get("account-id") {
+        let account_id = near_account_id::AccountId::from_str(account_id_str)
+            .map_err(|e| anyhow::anyhow!("Invalid account-id: {}", e))?;
+        near_primitives::action::GlobalContractIdentifier::AccountId(account_id)
+    } else {
+        anyhow::bail!("--code-hash <base58> or --account-id <id> required");
+    };
+
+    eprintln!("UseGlobalContract identifier={:?}", identifier);
+
+    let signer = InMemorySigner::from_file(&key_file)?;
+    let signer_id = signer.get_account_id().to_string();
+
+    let result = build_and_send(rpc_url, &signer, &signer_id, vec![
+        Action::UseGlobalContract(Box::new(near_primitives::action::UseGlobalContractAction {
+            contract_identifier: identifier,
+        })),
+    ])?;
+    print_result(&result);
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
@@ -404,6 +477,8 @@ fn main() -> anyhow::Result<()> {
         "view-call" => cmd_view_call(&opts),
         "stake"    => cmd_stake(&opts),
         "view"     => cmd_view(&opts),
+        "deploy-global" => cmd_deploy_global(&opts),
+        "use-global"    => cmd_use_global(&opts),
         _ => {
             eprintln!("Unknown command: {}. Use: transfer, create-account, add-key, delete-key, deploy, call, view-call, stake, view", command);
             std::process::exit(1);
