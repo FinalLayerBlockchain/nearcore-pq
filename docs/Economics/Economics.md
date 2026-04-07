@@ -66,6 +66,26 @@ Gas is priced dynamically in `NEAR` tokens. At each block `t`, we update `gasPri
 Where `gasUsed[t] = sum([sum([gas(tx) for tx in chunk]) for chunk in block[t]])`.
 `gasLimit[t]` is defined as `gasLimit[t] = gasLimit[t - 1] + validatorGasDiff[t - 1]`, where `validatorGasDiff` is parameter with which each chunk producer can either increase or decrease gas limit based on how long it to execute the previous chunk. `validatorGasDiff[t]` can be only within `±0.1%` of `gasLimit[t]` and only if `gasUsed[t - 1] > 0.9 * gasLimit[t - 1]`.
 
+### Final Layer: Minimum Gas Price Adjustment
+
+Final Layer sets `min_gas_price` to **1,000 yoctoFLC/gas** in genesis — a significant reduction from the NEAR Protocol default of `100,000,000 yoctoNEAR/gas` (10^8).
+
+**Rationale:** Ultra-low transaction fees are a design goal for the network at launch. The dynamic gas pricing formula above means the actual gas price naturally floats down toward the minimum floor whenever blocks are not at capacity. By setting a low floor, fees remain negligible during early chain activity while the dynamic adjustment mechanism still kicks in proportionally if blocks become congested.
+
+**Overflow safety:** The value `1,000` (u128) is well within the valid range for all balance arithmetic in the runtime. The gas price is stored as a `u128`, and fee computations — `gas_used * gas_price` — produce values far below `u128::MAX` even at the protocol's 1 PetaGas (10^15) block gas limit:
+
+```
+max fee per block = 10^15 gas * 10^3 yoctoFLC/gas = 10^18 yoctoFLC
+u128::MAX ≈ 3.4 * 10^38  →  no overflow possible
+```
+
+**Genesis field:** Set in `genesis.json` as:
+```json
+{ "min_gas_price": "1000" }
+```
+
+Note that `min_gas_price` is serialized as a quoted decimal string (matching the `Balance` / `u128` JSON convention used throughout the protocol).
+
 ## State Stake
 
 Amount of `NEAR` on the account represents right for this account to take portion of the blockchain's overall global state. Transactions fail if account doesn't have enough balance to cover the storage required for given account.
