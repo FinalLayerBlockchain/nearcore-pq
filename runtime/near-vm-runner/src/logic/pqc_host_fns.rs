@@ -27,11 +27,11 @@ use pqcrypto_traits::sign::{DetachedSignature as _, PublicKey as PqPk};
 
 // ── Gas constants — single source of truth (matches core/primitives/src/runtime/fees.rs) ──
 
-const MLDSA_VERIFY_BASE_GAS: u64  = 3_000_000_000_000; // v1003: raised from 2.1T (benchmark M2 p99=1.7ms)
+const MLDSA_VERIFY_BASE_GAS: u64  = 3_000_000_000_000; // set in v1003 (raised from 2.1T, benchmark p99=1.7ms); unchanged in v1004
 const MLDSA_VERIFY_BYTE_GAS: u64  =         5_000_000;
 const FNDSA_VERIFY_BASE_GAS: u64  = 1_400_000_000_000;
 const FNDSA_VERIFY_BYTE_GAS: u64  =         5_000_000;
-const SLHDSA_VERIFY_BASE_GAS: u64 = 8_000_000_000_000; // v1003: raised from 3.2T (benchmark M2 p99=5.1ms, 8KB sig)
+const SLHDSA_VERIFY_BASE_GAS: u64 = 8_000_000_000_000; // set in v1003 (raised from 3.2T, benchmark p99=5.1ms, 8KB sig); unchanged in v1004
 const SLHDSA_VERIFY_BYTE_GAS: u64 =         5_000_000;
 
 // ── Host context trait ───────────────────────────────────────────────────────────
