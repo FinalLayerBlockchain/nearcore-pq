@@ -16,7 +16,7 @@ pqc_verify_mldsa  (pk, pk_len, sig, sig_len, msg, msg_len) -> u64
 pqc_verify_slhdsa (pk, pk_len, sig, sig_len, msg, msg_len) -> u64
 ```
 
-**Gas constants** are set from 1000-iteration benchmarks on a 2-core/4GB validator at p99. The main change in protocol v1003 was raising ML-DSA from 2.1 to 3.0 TGas and SLH-DSA from 3.2 to 8.0 TGas after production benchmarks showed the originals were too low.
+**Gas constants** are set from 1000-iteration benchmarks on a 2-core/4GB validator at p99. The gas constants were finalized in protocol v1003 (ML-DSA raised from 2.1→3.0 TGas, SLH-DSA raised from 3.2→8.0 TGas after production benchmarks) and carry forward unchanged into v1004.
 
 ```rust
 const FNDSA_VERIFY_BASE_GAS:  u64 = 1_400_000_000_000;
@@ -34,9 +34,9 @@ const SLHDSA_VERIFY_BASE_GAS: u64 = 8_000_000_000_000;
 
 ## Network
 
-Chain ID `final-layer-mainnet`, protocol version 1003, 9 shards, ~1 second blocks, native token FLC.
+Chain ID `final-layer-mainnet`, protocol version 1004, 9 shards, ~1 second blocks, native token FLC.
 
-Protocol history: v1001 introduced PQC at genesis, v1002 deployed the 9-shard config, v1003 was the gas rebalance hard fork.
+Protocol history: v1001 introduced PQC at genesis, v1002 deployed the 9-shard config, v1003 was the gas rebalance hard fork, v1004 added ShardLayoutV2 (DynamicResharding), GlobalContracts, and mandatory FN-DSA signing.
 
 ## Building
 
