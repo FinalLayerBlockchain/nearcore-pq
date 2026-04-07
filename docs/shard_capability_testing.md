@@ -198,7 +198,48 @@ Current status: `to_parent_shard_map: null`. Merge infrastructure is present alo
 
 ---
 
-## Test K — Global Contracts `[INFRASTRUCTURE VERIFIED]`
+## Test K — Global Contracts `[LIVE VERIFIED]`
+
+### K1 — DeployGlobalContract
+
+The `deploy-global` subcommand was added to `fl-send-tx` and used to deploy a contract globally (not to any specific account, but chain-wide by code hash).
+
+| Field | Value |
+|---|---|
+| TX hash | `Gh3CeFExr1fhoioa6WPfjnC3K6bksS9DwjnZVjt9pngP` |
+| Action | DeployGlobalContract |
+| Signer | test.validator (FN-DSA key) |
+| WASM size | 1,222 bytes |
+| Code hash | `AP4cabdjMxJEKe655khXWFgcBBhG9QD4WhMYxYjY52ix` |
+| Deploy mode | CodeHash (immutable — referenced by sha256 hash) |
+| TX status | SuccessValue "" |
+| Receipt executor | test.validator |
+| Gas burnt (tx) | 1,701,150,734,778 |
+| Gas burnt (receipt) | 378,365,250,000 |
+
+The contract is now stored chain-wide. Any account can reference it by its code hash without holding the WASM bytes in their own storage.
+
+### K2 — UseGlobalContract
+
+After deploying globally, the same account adopted the global contract using `UseGlobalContract` with the code hash from K1.
+
+| Field | Value |
+|---|---|
+| TX hash | `2SjN9VUedDp2Sv3jzKngsGGUK6Vr2pNUEGxRHPoSo5rp` |
+| Action | UseGlobalContract |
+| Identifier | CodeHash `AP4cabdjMxJEKe655khXWFgcBBhG9QD4WhMYxYjY52ix` |
+| Signer | test.validator |
+| TX status | SuccessValue "" |
+| Gas burnt | 294,891,584,208 |
+
+**Result: PASS — both transactions.** GlobalContract feature is fully functional at protocol 1004:
+- WASM deployed once globally at a cost of ~1.7T gas
+- Account adopted it for ~295B gas (no need to re-upload 1,222 bytes)
+- Saves per-account storage cost when many accounts share the same contract code
+
+### How it was enabled
+
+The `deploy-global` and `use-global` subcommands were added to the `fl-send-tx` source at `tools/fl-send-tx/src/main.rs` and rebuilt. The underlying `DeployGlobalContractAction` and `UseGlobalContractAction` types were already present in the `near-primitives` crate (protocol 83+, active at 1004).
 
 Protocol config confirmed at height 2309:
 
@@ -242,5 +283,6 @@ The mechanism is inherited from NEAR Protocol core:
 | H | All 9 shards producing chunks | ✅ LIVE VERIFIED | block queries |
 | I | Dynamic resharding | ⚙️ MECHANISM PRESENT | config analysis |
 | J | Shard merging | ⚙️ MECHANISM PRESENT | config analysis |
-| K | Global contracts | ⚙️ INFRA VERIFIED | protocol_config RPC |
+| K1 | DeployGlobalContract | ✅ LIVE VERIFIED | `Gh3CeFExr1fh…` |
+| K2 | UseGlobalContract | ✅ LIVE VERIFIED | `2SjN9VUedDp2…` |
 | L | Gas auto-adjustment | ⚙️ MECHANISM PRESENT | see Test G |
