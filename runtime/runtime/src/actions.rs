@@ -171,13 +171,23 @@ pub(crate) fn action_create_account(
             // OK: Valid top-level Account ID
         }
     } else if !account_id.is_sub_account_of(predecessor_id) {
-        // The sub-account can only be created by its root account. E.g. `alice.near` only by `near`
-        result.result = Err(ActionErrorKind::CreateAccountNotAllowed {
-            account_id: account_id.clone(),
-            predecessor_id: predecessor_id.clone(),
+        // Final Layer: any account may create a direct .fl sub-account (e.g. jack.fl)
+        // because the "fl" registrar account does not exist as an active on-chain account.
+        // We only allow one level deep: account_id must be exactly "<name>.fl".
+        let is_direct_fl = {
+            let s = account_id.as_str();
+            s.ends_with(".fl") && s.matches('.').count() == 1
+        };
+        if !is_direct_fl {
+            // The sub-account can only be created by its root account. E.g. `alice.near` only by `near`
+            result.result = Err(ActionErrorKind::CreateAccountNotAllowed {
+                account_id: account_id.clone(),
+                predecessor_id: predecessor_id.clone(),
+            }
+            .into());
+            return;
         }
-        .into());
-        return;
+        // OK: Direct .fl account creation allowed by any predecessor on Final Layer.
     } else {
         // OK: Valid sub-account ID by proper predecessor.
     }
